@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-time-api
+  labels:
+    app: go-time-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: go-time-api
+  template:
+    metadata:
+      labels:
+        app: go-time-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: api
+          image: registry.example.com/platform/go-time-api:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-time-api
+  labels:
+    app: go-time-api
+spec:
+  selector:
+    app: go-time-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
