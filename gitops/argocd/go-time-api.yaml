@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: go-time-api
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yasiriqbal2176/codecube.git
+    targetRevision: main
+    path: k8s/go-time-api
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: go-time-api
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

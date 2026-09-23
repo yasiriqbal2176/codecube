@@ -1,0 +1,43 @@
+stages:
+  - test
+  - build
+  - scan
+  - deploy
+
+variables:
+  IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+test:
+  stage: test
+  image: golang:1.24
+  script:
+    - cd go-time-api
+    - go test ./...
+
+build:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker build -t "$IMAGE" go-time-api
+    - docker push "$IMAGE"
+
+container_scan:
+  stage: scan
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL "$IMAGE"
+  needs: ["build"]
+
+deploy_config:
+  stage: deploy
+  image: alpine:3.22
+  script:
+    - echo "GitOps deployment: update the image tag in the environment repository."
+    - echo "Argo CD reconciles the Kubernetes state from Git."
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
